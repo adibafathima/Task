@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import TaskList from './components/TaskList';
 import TaskForm from './components/TaskForm';
 import Auth from './components/Auth';
+import { authService, taskService } from './services/api';
 
-// Set base URL for axios
-const API_URL = process.env.REACT_APP_API_URL || '';
-axios.defaults.baseURL = API_URL;
+// API URL for reference
+const API_URL = 'https://task-eight-tan-50.vercel.app';
 
 function App() {
   const [tasks, setTasks] = useState({});
@@ -31,13 +30,11 @@ function App() {
     setLoading(false);
   }, [token]);
 
-  // Set auth token for axios
+  // Set auth token
   const setAuthToken = (token) => {
     if (token) {
-      axios.defaults.headers.common['x-auth-token'] = token;
       localStorage.setItem('token', token);
     } else {
-      delete axios.defaults.headers.common['x-auth-token'];
       localStorage.removeItem('token');
     }
   };
@@ -46,12 +43,24 @@ function App() {
   const login = async (userData) => {
     try {
       console.log('Logging in with:', userData);
+      
+      // If token is already provided (from direct API call)
+      if (userData.token) {
+        console.log('Using provided token');
+        setAuthToken(userData.token);
+        setToken(userData.token);
+        setIsAuthenticated(true);
+        return null;
+      }
+      
+      // Otherwise make the API call
       const res = await axios.post('/api/users/login', userData);
       console.log('Login response:', res.data);
       const token = res.data.token;
       setAuthToken(token);
       setToken(token);
       setIsAuthenticated(true);
+      return null;
     } catch (err) {
       console.error('Login error:', err.response?.data || err.message);
       return err.response?.data || { msg: 'Login failed' };
@@ -62,15 +71,41 @@ function App() {
   const register = async (userData) => {
     try {
       console.log('Registering with:', userData);
-      const res = await axios.post('/api/users/register', userData);
+      
+      // If token is already provided (from direct API call)
+      if (userData.token) {
+        console.log('Using provided token');
+        setAuthToken(userData.token);
+        setToken(userData.token);
+        setIsAuthenticated(true);
+        return null;
+      }
+      
+      // Otherwise make the API call
+      const res = await axios.post('/api/users/register', {
+        username: userData.username,
+        password: userData.password
+      });
+      
       console.log('Register response:', res.data);
-      const token = res.data.token;
-      setAuthToken(token);
-      setToken(token);
-      setIsAuthenticated(true);
+      if (res.data && res.data.token) {
+        const token = res.data.token;
+        setAuthToken(token);
+        setToken(token);
+        setIsAuthenticated(true);
+        return null; // No error
+      } else {
+        console.error('No token received in registration response');
+        return { msg: 'Registration failed - no token received' };
+      }
     } catch (err) {
-      console.error('Register error:', err.response?.data || err.message);
-      return err.response?.data || { msg: 'Registration failed' };
+      console.error('Register error:', err);
+      if (err.response && err.response.data) {
+        console.error('Server response:', err.response.data);
+        return err.response.data;
+      } else {
+        return { msg: 'Registration failed - network error' };
+      }
     }
   };
 
@@ -85,16 +120,16 @@ function App() {
   // Get tasks
   const getTasks = async () => {
     try {
-      const res = await axios.get('/api/tasks');
+      const data = await taskService.getTasks(token);
       // Convert array to object with _id as key
       const tasksObj = {};
-      res.data.forEach(task => {
+      data.forEach(task => {
         tasksObj[task._id] = task;
       });
       setTasks(tasksObj);
       filterTasks(tasksObj, filter);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching tasks:', err);
     }
   };
 
@@ -102,9 +137,8 @@ function App() {
   const addTask = async (task) => {
     try {
       console.log('Adding task:', task);
-      const res = await axios.post('/api/tasks', task);
-      console.log('Server response:', res.data);
-      const newTask = res.data;
+      const newTask = await taskService.createTask(task, token);
+      console.log('Server response:', newTask);
       const updatedTasks = { ...tasks, [newTask._id]: newTask };
       console.log('Updated tasks:', updatedTasks);
       setTasks(updatedTasks);

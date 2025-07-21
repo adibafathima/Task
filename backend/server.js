@@ -14,23 +14,28 @@ app.use(express.json());
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://taskapp-frontend.vercel.app', 'https://taskapp.vercel.app'] 
-    : 'http://localhost:3000',
+  origin: ['https://task-t7pl.vercel.app', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
   credentials: true
 }));
+
+// Add CORS headers directly as middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://task-t7pl.vercel.app');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-auth-token');
+  next();
+});
 
 // Handle preflight requests
 app.options('*', cors());
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
+mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log('MongoDB Connected'))
 .catch(err => {
-  console.error('MongoDB Connection Error:', err.message);
+  console.error('MongoDB Connection Error:', err);
   process.exit(1);
 });
 

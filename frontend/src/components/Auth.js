@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { authService } from '../services/api';
 
 const Auth = ({ login, register }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,18 +16,34 @@ const Auth = ({ login, register }) => {
       return;
     }
 
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
     const userData = { username, password };
+    const endpoint = isLogin ? 'login' : 'register';
     
     try {
-      const result = isLogin 
-        ? await login(userData)
-        : await register(userData);
+      console.log(`Attempting to ${isLogin ? 'login' : 'register'}...`);
       
-      if (result && result.msg) {
-        setError(result.msg);
+      // Use the API service
+      const authFunction = isLogin ? authService.login : authService.register;
+      const data = await authFunction(username, password);
+      console.log('API response:', data);
+      
+      if (data.token) {
+        if (isLogin) {
+          login({ ...userData, token: data.token });
+        } else {
+          register({ ...userData, token: data.token });
+        }
+      } else {
+        setError('No authentication token received');
       }
     } catch (err) {
-      setError('Authentication failed');
+      console.error('Auth component error:', err);
+      setError('Authentication failed. Please check your connection.');
     }
   };
 

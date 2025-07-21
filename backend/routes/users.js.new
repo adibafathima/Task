@@ -28,6 +28,7 @@ router.post('/register', async (req, res) => {
     });
 
     await user.save();
+    console.log('User saved successfully');
 
     // Create JWT payload
     const payload = {
@@ -42,7 +43,10 @@ router.post('/register', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '7d' },
       (err, token) => {
-        if (err) throw err;
+        if (err) {
+          console.error('JWT sign error:', err);
+          return res.status(500).json({ msg: 'Error generating token' });
+        }
         res.json({ token });
       }
     );
@@ -57,6 +61,7 @@ router.post('/register', async (req, res) => {
 // @access  Public
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
+  console.log('Login attempt:', { username });
 
   try {
     // Check if user exists
@@ -84,13 +89,16 @@ router.post('/login', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '7d' },
       (err, token) => {
-        if (err) throw err;
+        if (err) {
+          console.error('JWT sign error:', err);
+          return res.status(500).json({ msg: 'Error generating token' });
+        }
         res.json({ token });
       }
     );
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Login error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
