@@ -110,6 +110,59 @@ export const taskService = {
       console.error('Create task error:', error);
       throw error;
     }
+  },
+  
+  // Update a task
+  updateTask: async (id, taskData, token) => {
+    try {
+      const response = await fetch(`${API_URL}/api/tasks/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify(taskData),
+        mode: 'cors',
+        credentials: 'omit'
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.msg || 'Failed to update task');
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Update task error:', error);
+      throw error;
+    }
+  },
+  
+  // Delete a task
+  deleteTask: async (id, token) => {
+    try {
+      const response = await fetch(`${API_URL}/api/tasks/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        mode: 'cors',
+        credentials: 'omit'
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.msg || 'Failed to delete task');
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Delete task error:', error);
+      throw error;
+    }
   }
 };
 

@@ -54,16 +54,16 @@ function App() {
       }
       
       // Otherwise make the API call
-      const res = await axios.post('/api/users/login', userData);
-      console.log('Login response:', res.data);
-      const token = res.data.token;
+      const data = await authService.login(userData.username, userData.password);
+      console.log('Login response:', data);
+      const token = data.token;
       setAuthToken(token);
       setToken(token);
       setIsAuthenticated(true);
       return null;
     } catch (err) {
-      console.error('Login error:', err.response?.data || err.message);
-      return err.response?.data || { msg: 'Login failed' };
+      console.error('Login error:', err.message);
+      return { msg: 'Login failed' };
     }
   };
 
@@ -82,14 +82,11 @@ function App() {
       }
       
       // Otherwise make the API call
-      const res = await axios.post('/api/users/register', {
-        username: userData.username,
-        password: userData.password
-      });
+      const data = await authService.register(userData.username, userData.password);
       
-      console.log('Register response:', res.data);
-      if (res.data && res.data.token) {
-        const token = res.data.token;
+      console.log('Register response:', data);
+      if (data && data.token) {
+        const token = data.token;
         setAuthToken(token);
         setToken(token);
         setIsAuthenticated(true);
@@ -100,12 +97,7 @@ function App() {
       }
     } catch (err) {
       console.error('Register error:', err);
-      if (err.response && err.response.data) {
-        console.error('Server response:', err.response.data);
-        return err.response.data;
-      } else {
-        return { msg: 'Registration failed - network error' };
-      }
+      return { msg: 'Registration failed - ' + err.message };
     }
   };
 
@@ -151,13 +143,13 @@ function App() {
   // Delete task
   const deleteTask = async (id) => {
     try {
-      await axios.delete(`/api/tasks/${id}`);
+      await taskService.deleteTask(id, token);
       const updatedTasks = { ...tasks };
       delete updatedTasks[id];
       setTasks(updatedTasks);
       filterTasks(updatedTasks, filter);
     } catch (err) {
-      console.error(err);
+      console.error('Error deleting task:', err);
     }
   };
 
@@ -166,24 +158,24 @@ function App() {
     try {
       const task = tasks[id];
       const updatedTask = { ...task, completed: !task.completed };
-      const res = await axios.put(`/api/tasks/${id}`, updatedTask);
-      const updatedTasks = { ...tasks, [id]: res.data };
+      const updatedTaskData = await taskService.updateTask(id, updatedTask, token);
+      const updatedTasks = { ...tasks, [id]: updatedTaskData };
       setTasks(updatedTasks);
       filterTasks(updatedTasks, filter);
     } catch (err) {
-      console.error(err);
+      console.error('Error toggling task completion:', err);
     }
   };
 
   // Edit task
   const editTask = async (id, updatedTask) => {
     try {
-      const res = await axios.put(`/api/tasks/${id}`, updatedTask);
-      const updatedTasks = { ...tasks, [id]: res.data };
+      const updatedTaskData = await taskService.updateTask(id, updatedTask, token);
+      const updatedTasks = { ...tasks, [id]: updatedTaskData };
       setTasks(updatedTasks);
       filterTasks(updatedTasks, filter);
     } catch (err) {
-      console.error(err);
+      console.error('Error editing task:', err);
     }
   };
 
